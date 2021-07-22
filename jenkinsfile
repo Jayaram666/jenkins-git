@@ -3,15 +3,12 @@ pipeline{
   agent any;
 
   stages{
-
-     stage('build'){
-
+     stage("build"){
      steps{
        step{
        echo 'in build state '
       }
-
-     }
+    }
 }
 }
 }
