@@ -1,12 +1,126 @@
-pipeline{
-
-  agent any;
-
-  stages{
-     stage("build"){
-     steps{
-       echo 'in build state '
+package com.wordpress.rathinasaba.ws.client;
+ 
+import java.io.IOException;
+ 
+import org.apache.commons.httpclient.HttpConnection;
+import org.apache.commons.httpclient.HttpState;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
+ 
+public class CustomerSvcClient {
+     
+    private static final String host="localhost";
+    private static final String port="8011";
+     
+    public static String invokeCustomerSvc(String payload,String endpointURL){
+         String wellformedrequest=null;
+         String serviceResponse=null;
+         HttpConnection httpConn=null;
+         try {
+            if (!payload.toUpperCase().contains("</SOAPENV:BODY>")) {
+                
+                 String soapEnvHeader =
+                     "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n" +
+                     "   <soapenv:Body>";
+                 String body = payload;
+                 String soapEnvFooter = " </soapenv:Body>\n" +"</soapenv:Envelope>";
+                 wellformedrequest = soapEnvHeader.concat(body).concat(soapEnvFooter);
+             } else {
+                 wellformedrequest = payload;
+             }
+              
+             /**
+              * Creating Http Connection to call WebService Over HTTP Protocol
+              */
+            println(" ---- Creating HTTP Connection ----");
+            httpConn=new HttpConnection(host,Integer.parseInt(port));
+            httpConn.open();
+            PostMethod postMethod=new PostMethod();
+             /**
+              * Set Endpoint URL
+              */
+            postMethod.setPath(endpointURL);
+            postMethod.setRequestEntity(new StringRequestEntity(wellformedrequest, "application/soap+xml", "utf-8"));
+            postMethod.execute(new HttpState(), httpConn);
+            println("HTTP Response Status :"+postMethod.getStatusLine().toString());
+            serviceResponse=postMethod.getResponseBodyAsString();
+            println("Service Response :"+serviceResponse);
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally{
+            httpConn.releaseConnection();
+        }
+         return serviceResponse;
     }
-}
-}
+     
+    private static void println(Object content){
+        System.out.println(content);
+    }
+     
+    private static String getSayHelloRequest(){
+        String sayHelloRequest="<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ws=\"http://com/wordpress/rathinasaba/ws\">" +
+                        "           <soapenv:Header/>" +
+                        "           <soapenv:Body>" +
+                        "               <ws:sayHello>" +
+                        "                   <ws:name>Rathina Sabapathy</ws:name>" +
+                        "                </ws:sayHello>" +
+                        "           </soapenv:Body>" +
+                        "       </soapenv:Envelope>";
+     
+        return sayHelloRequest;
+    }
+     
+    private static String getSayHelloRequestOne(){
+        String sayHelloRequest="<ws:sayHello xmlns:ws=\"http://com/wordpress/rathinasaba/ws\">" +
+                "         <ws:name>Rathina Sabapathy</ws:name>" +
+                "      </ws:sayHello>";
+        return sayHelloRequest;
+    }
+     
+    private static String getCheckStatusRequest(){
+        String statusRequest="<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ws=\"http://com/wordpress/rathinasaba/ws\">" +
+                            "   <soapenv:Header/>" +
+                            "   <soapenv:Body>" +
+                            "      <ws:checkStatus>" +
+                            "         <ws:serviceName>SMS</ws:serviceName>" +
+                            "      </ws:checkStatus>" +
+                            "   </soapenv:Body>" +
+                            "</soapenv:Envelope>";
+        return statusRequest;
+    }
+     
+    private static String getUpdateAddressRequest(){
+        String statusRequest="<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ws=\"http://com/wordpress/rathinasaba/ws\">" +
+                "              <soapenv:Header/>" +
+                "                  <soapenv:Body>" +
+                "                     <ws:updateAddress>" +
+                "                        <ws:address>Adyar,Chennai</ws:address>" +
+                "                     </ws:updateAddress>" +
+                "                  </soapenv:Body>" +
+                "               </soapenv:Envelope>";
+        return statusRequest;
+    }
+     
+    public static void main(String[] args) {
+        String endpointURL="http://localhost:8011/CustomerSvc/CustomerService";
+         
+        /**
+         * 1. Call SayHello Service With SOAP body and Without SOAP body
+         */
+        invokeCustomerSvc(getSayHelloRequest(), endpointURL);
+        invokeCustomerSvc(getSayHelloRequestOne(), endpointURL);
+         
+        /**
+         * 2. Call CheckStatus Service
+         */
+        invokeCustomerSvc(getCheckStatusRequest(), endpointURL);
+         
+        /**
+         * 3. Call UpdateAddress Service
+         */
+        invokeCustomerSvc(getUpdateAddressRequest(), endpointURL);
+    }
+ 
 }
